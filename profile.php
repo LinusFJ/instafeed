@@ -9,60 +9,17 @@
     <title>InstaFeed.me - Search Instagram profiles</title>
  
     <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
+    <!-- Custom styles for this template -->
     <link href="css/stylesheet.css?version=1" rel="stylesheet">
  
 </head>
 <body>
-
 <?php
 include 'functions.php';
+?> 
 
-/*Checks if logged in*/
-if(isset($_GET['code'])){
-  $clientID = 'd64dad5dbfc34db1b77e33eff6afd7d8';
-  $clientSecret = 'da7836e88c7347cfaad25fffdb9b92bf';
-  $redirectURI = 'http://localhost/instafeed/index.php';
-  $code = $_GET['code'];
-  $url = "https://api.instagram.com/oauth/access_token";
-  $access_token_settings = array (
-      'client_id' => $clientID,
-      'client_secret' => $clientSecret,
-      'grant_type' => 'authorization_code',
-      'redirect_uri' => $redirectURI,
-      'code' => $code
-    );
-
-  $ch = curl_init($url);
-      curl_setopt($ch, CURLOPT_POST, true);
-      curl_setopt($ch, CURLOPT_POSTFIELDS, $access_token_settings);
-      curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-      curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-
-      $get = curl_exec($ch);
-      curl_close($ch);
-
-      $obj = json_decode($get, true);
-
-      $isValid = $obj['meta']['code'];
-
-      if($isValid !== 400){
-        $accessToken = $obj['access_token']; //Personal access token for logged in users
-        $username = $obj['user']['username'];
-        $uid = getUID($username);
-
-          if($accessToken && $username){
-            $encToken = encryptIt($accessToken);
-            $encUsername = encryptIt($uid);
-
-            setcookie('testToken', $encToken, time() + (86400 * 30), "/");
-            setcookie('testUsername', $encUsername, time() + (86400 * 30), "/");
-          }
-        header("Location: index.php");
-        die();
-      }
-  }
-?>
-  <!-- Static navbar -->
+	<div class="wrapper">
+      <!-- Static navbar -->
       <nav class="navbar navbar-inverse navbar-fixed-top">
       <div class="container">
         <div class="navbar-header">
@@ -79,28 +36,28 @@ if(isset($_GET['code'])){
           <a class="navbar-brand" href="index.php">InstaFeed.me</a>
         </div>
 
-        <div class="photo-feed-wrapper">
+      	<div class="photo-feed-wrapper">
         <div id="navbar" class="collapse navbar-collapse">
-          <div class='hidden-xs'>
-            <ul class="nav navbar-nav">
-                <div class="search-box"> 
-            <form method='get' action='search.php'>
-                      <div class="input-group stylish-input-group">
-                          <input type="text" class="form-control" name='search_result' placeholder="User or Tag" value='pewdiepie'>
-                          <span class="input-group-addon">
-                              <button type="submit" name='submit'>
-                                  <span class="glyphicon glyphicon-search"></span>
-                              </button>  
-                          </span>
-                      </div>
-            </form>
-                </div>
-            </ul>
-        </div>
+	        <div class='hidden-xs'>
+	        	<ul class="nav navbar-nav">
+		            <div class="search-box"> 
+						<form method='get' action='search.php'>
+		              		<div class="input-group stylish-input-group">
+		                    	<input type="text" class="form-control" name='search_result' placeholder="User or Tag" value='pewdiepie'>
+		                    	<span class="input-group-addon">
+		                        	<button type="submit" name='submit'>
+		                            	<span class="glyphicon glyphicon-search"></span>
+		                       		</button>  
+		                    	</span>
+		                	</div>
+						</form>
+		            </div>
+		        </ul>
+		    </div>
 
-          <ul class="nav navbar-nav navbar-right">
-            <?php isLoggedIn(); ?>
-          </ul>
+	        <ul class="nav navbar-nav navbar-right">
+	          <?php isLoggedIn(); ?>
+	        </ul>
         </div><!--/.nav-collapse -->
 
 
@@ -109,18 +66,18 @@ if(isset($_GET['code'])){
           <div id="search" class="collapse navbar-collapse">
           <ul class="nav navbar-nav">
             <li>
-              <div class="search-box" class="collapse navbar-collapse">
-                <form method='get' action='search.php'>
-                    <div class="input-group stylish-input-group">
-                        <input type="text" class="form-control" name='search_result' placeholder="User or Tag" value='pewdiepie'>
-                        <span class="input-group-addon">
-                            <button type="submit" name='submit'>
-                                <span class="glyphicon glyphicon-search"></span>
-                          </button>  
-                        </span>
-                    </div>
-          </form>
-        </div>
+	            <div class="search-box" class="collapse navbar-collapse">
+	            	<form method='get' action='search.php'>
+		              	<div class="input-group stylish-input-group">
+		                   	<input type="text" class="form-control" name='search_result' placeholder="User or Tag" value='pewdiepie'>
+		                   	<span class="input-group-addon">
+		                       	<button type="submit" name='submit'>
+		                           	<span class="glyphicon glyphicon-search"></span>
+		                   		</button>  
+		                   	</span>
+		                </div>
+					</form>
+				</div>
             </li>
           </ul>
         </div><!--/.nav-collapse -->
@@ -130,45 +87,89 @@ if(isset($_GET['code'])){
         </div><!--/.photo-feed-wrapper-collapse -->
       </div><!--/.container-collapse -->
     </nav>
-      
+			
 
-  <div class="container">   
+	<div class="container">		
       <!-- Main component for a primary marketing message or call to action -->
 
-    <?php
+		<?php
+		  if(isset($_GET['username'])){
+      
+        $uid = getUID($_GET['username']);
 
         /*Pagination*/
         if(isset($_GET['page'])) {
-          $url="https://api.instagram.com/v1/users/self/feed?access_token=".accessToken."&max_id=".$_GET['page'];
+          $url="https://api.instagram.com/v1/users/{$uid}/media/recent/?access_token=".accessToken."&max_id=".$_GET['page'];
         }else{
-          $url="https://api.instagram.com/v1/users/self/feed?access_token=".accessToken;
+          $url="https://api.instagram.com/v1/users/{$uid}/media/recent/?access_token=".accessToken;
         }
 
         $get = connectToInstagram($url);
         $obj = json_decode($get, true, 512);
 
-        /*Show feed if logged in*/
-        if(isset($_COOKIE['testToken']) && isset($_COOKIE['testUsername'])){
-
         if(isset($obj['pagination']['next_max_id'])){
-          //session_start();
+          session_start();
           $_SESSION["pagination"] = $obj['pagination']['next_url'];
           $_SESSION["next_page"] = $obj['pagination']['next_max_id'];
         }
 
         $isValid = $obj['meta']['code'];
 
-        /*Display feed if it exists*/
+        /*Display profile if it exists*/
         if($isValid !== 400){
+
+          /*User info*/
+          $bio_url = "https://api.instagram.com/v1/users/{$uid}/?access_token=".accessToken;
+          $get = connectToInstagram($bio_url);
+          $userInfo = json_decode($get, true, 512);
           
           /*echo "<pre>";
           print_r($userInfo);
           echo "</pre>";*/
+
+          $profile_username = $userInfo['data']['username'];
+          $profile_picture = $userInfo['data']['profile_picture'];
+          $profile_full_name = $userInfo['data']['full_name'];
+
+          $bio = $userInfo['data']['bio'];
+          $bio = preg_replace("/#(\w+)/", "<a class='blue' a href='/instafeed/tag.php?tag=$1'>#$1</a>", $bio);
+          $bio = preg_replace("/@([^\s]+)/", "<a class='blue' href='/instafeed/profile.php?username=$1'>@$1</a>", $bio);
+          $website = $userInfo['data']['website'];
+          $media_count = $userInfo['data']['counts']['media'];
+          $follows = $userInfo['data']['counts']['follows'];
+          $followed_by = $userInfo['data']['counts']['followed_by'];
           ?>
           <div class='photo-feed-wrapper'>
-            <div class='tag-info'>
-              <h2>Feed</h2>
-           </div>
+            <div class='user-info'>
+
+              <div class='user-picture'>
+                <?php
+                echo "<a href='/instafeed/profile.php?username={$profile_username}'><img src='".$profile_picture."' alt='".$profile_username."' class='img-circle' height='120' width='120'></a>";
+                ?>
+              </div> 
+
+              <div class='user-left'>
+              <?php
+                if($profile_full_name){
+                  echo "<h4>".$profile_full_name."</h4>";
+                }
+                echo "<a href='/instafeed/profile.php?username={$profile_username}'>@".$profile_username."</a>";            
+                ?>
+                <div class='user-bottom'>
+                  <ul>
+                    <li>Followers: <b><?php echo $followed_by ?></b></li>
+                    <li>Following: <b><?php echo $follows ?></b></li>
+                    <li>Posts <b><?php echo $media_count ?></b></li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class='user-right'>
+                <h5><?php echo $bio ?></h5>
+                <a href=<?php echo $website ?> target='_blank' rel='nofollow'><?php echo $website ?></a>
+              </div>
+
+            </div>
 
         <?php
         /*Show user profile data (pics, comments etc.)*/
@@ -187,9 +188,6 @@ if(isset($_GET['code'])){
           $type = $obj['data'][$i]['type'];
 
           $text = $obj['data'][$i]['caption']['text'];
-          $username = $obj['data'][$i]['caption']['from']['username'];
-          $profile_picture = $obj['data'][$i]['caption']['from']['profile_picture'];
-          $profile_full_name = $obj['data'][$i]['caption']['from']['full_name'];
           $text = preg_replace("/#(\w+)/", "<a class='blue' a href='/instafeed/tag.php?tag=$1'>#$1</a>", $text);
           $text = preg_replace("/@([^\s]+)/", "<a class='blue' href='/instafeed/profile.php?username=$1'>@$1</a>", $text);
   
@@ -206,11 +204,11 @@ if(isset($_GET['code'])){
 
               echo "<div class='title-box'>";
                     echo "<div class='profile-picture'>";
-                      echo "<a href='/instafeed/profile.php?username={$username}'><img src='".$profile_picture."' alt='".$username."' class='img-circle' height='40' width='40'></a>";
+                      echo "<a href='/instafeed/profile.php?username={$profile_username}'><img src='".$profile_picture."' alt='".$profile_username."' class='img-circle' height='40' width='40'></a>";
                     echo "</div>";    
                       echo "<div class='profile-top'>";
                   echo "<span class='time'>".$time."</span>";
-                  echo "<a href='/instafeed/profile.php?username={$username}'><span class='name'>@".$username."</span></a>";              
+                  echo "<a href='/instafeed/profile.php?username={$profile_username}'><span class='name'>@".$profile_username."</span></a>";              
                   echo "</div>";
 
                   echo "<div class='profile-bottom'>";
@@ -229,16 +227,20 @@ if(isset($_GET['code'])){
 
                   if($type == 'video'){
                     echo "<div class='video'>";
-                      echo "<a class='video' href='/instafeed/photo.php?photo={$id}'><span></span><img src='".$img."' alt='".$username."' id='".$id."' height='340' width='340'></a>";
+                      echo "<a class='video' href='/instafeed/photo.php?photo={$id}'><span></span><img src='".$img."' alt='".$profile_username."' id='".$id."' height='340' width='340'></a>";
                   echo "</div>";  
                   }else{
-                  echo "<a href='/instafeed/photo.php?photo={$id}'><img src='".$img."' alt='".$username."' id='".$id."' height='340' width='340'></a>";
+                  echo "<a href='/instafeed/photo.php?photo={$id}'><img src='".$img."' alt='".$profile_username."' id='".$id."' height='340' width='340'></a>";
                 }
+
 
                 echo "</div>";
                 echo "</div>";
 
               echo "<div class='liked-box'>";
+
+              //echo "<a href='/instafeed/like.php?media_id={$id}'>Like</a>";
+
                 echo "<span>".$likes_count." likes</span>";
                 echo "<ul>";
                 while($j<$commentsLength){
@@ -270,7 +272,7 @@ if(isset($_GET['code'])){
             echo "<div class='title-box'>";
 
               echo "<div class='profile-picture'>";
-                echo "<a href='/instafeed/profile.php?username={$username}'><img src='".$profile_picture."' alt='".$username."' class='img-circle' height='32' width='32'></a>";
+                echo "<a href='/instafeed/profile.php?username={$profile_username}'><img src='".$profile_picture."' alt='".$profile_username."' class='img-circle' height='32' width='32'></a>";
               echo "</div>";    
               echo "<div class='profile-top'>";
                     echo "<p class='taskDescription'>".$text."</p>";
@@ -312,7 +314,7 @@ if(isset($_GET['code'])){
                   echo "</ul>";
               echo "</div>";
 
-                  echo "<form class='form-inline'' role='form'>";
+                  /*echo "<form class='form-inline'' role='form'>";
                     echo "<div class='post-comment'>";
                           echo "<div class='form-group'>";
                               echo "<input class='form-control' type='text' placeholder='Add a comment...' />";
@@ -321,7 +323,7 @@ if(isset($_GET['code'])){
                               echo "<button class='btn btn-default'>Add</button>";
                           echo "</div>";
                     echo "</div>";
-                  echo "</form>";
+                  echo "</form>";*/
 
               echo "</div>";
 
@@ -343,7 +345,7 @@ if(isset($_GET['code'])){
 
         if(isset($_SESSION["pagination"])){
           echo "<div class='next-page'>";
-          echo "<a href='/instafeed/feed.php?feed&page={$_SESSION["next_page"]}'><button class='button'>View more</button></a>";
+          echo "<a href='/instafeed/profile.php?username={$profile_username}&page={$_SESSION["next_page"]}'><button class='button'>View more</button></a>";
           echo "</div>";
         }
 
@@ -408,34 +410,10 @@ if(isset($_GET['code'])){
       }
         
       }
-      /*If not logged in*/
-      }else{
-      ?>
-        <div class="container">
-          <!-- Main component for a primary marketing message or call to action -->
-          <div class="jumbotron">
-            <h1>Alpha 1.4</h1>
-            <p>This example is a quick example of the functionality.</p>
-
-            <form method='get' action='search.php'>
-              <br>
-              Search user<br>
-              <input type='text' name='search_result' placeholder='Enter username...' value='pewdiepie'><br>
-              <input type='submit' name='submit' value='Search'>
-            </form>
-          </div>
-        </div> <!-- /container -->
-    <?php
-      }
-    ?>
+			}
+		?>
 
     </div> <!-- /container -->
-
-    <!-- <div class="top-button">
-      <h3><a href="#">^</a></h3>
-    </div> -->
-
-    </div>
  
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
 <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
